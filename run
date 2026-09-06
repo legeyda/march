@@ -1,0 +1,31 @@
+#!/bin/sh
+set -eu
+
+
+main() {
+	local subcmd="$1"
+	shift
+	"run_$subcmd" "$@"
+}
+
+run_march() {
+	false
+}
+
+run_build() {
+	mkdir -p ./build
+	shelduck resolve ./march_entry_point.sh > ./build/march
+	chmod +x ./build/march
+}
+
+run_install() {
+	local prefix="${MARCH_INSTALL_PREFIX:-$HOME/.local}"
+
+	run_build
+
+	mkdir -p "$prefix"
+	cp -T ./build/march "$prefix"/bin/march
+}
+
+
+main "$@"
