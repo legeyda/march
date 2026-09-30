@@ -100,10 +100,15 @@ march_runner_archive() {
 	if ! bobshell_result_check _march_runner_archive__file; then
 		return
 	fi
+	shift
 
 	if [ true = "$_march__archive" ] || bobshell_isset _march__archive_exe; then
 		true
-	elif bobshell_ends_with "$1" .tar.gz || bobshell_ends_with "$1" .tar.xz || bobshell_ends_with "$1" .zip; then
+	elif bobshell_ends_with "$_march_runner_archive__file" .tar.gz; then
+		true
+	elif bobshell_ends_with "$_march_runner_archive__file" .tar.xz; then
+		:
+	elif bobshell_ends_with "$_march_runner_archive__file" .zip;    then
 		true
 	else
 		bobshell_result_set false true 'unsupported archive'

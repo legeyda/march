@@ -28,28 +28,12 @@ shelduck import https://raw.githubusercontent.com/legeyda/bobshell/refs/heads/ma
 
 shelduck import https://raw.githubusercontent.com/legeyda/bobshell/refs/heads/main/result/foreach.sh
 
+shelduck import https://raw.githubusercontent.com/legeyda/bobshell/refs/heads/main/misc/log.sh
+
 
 shelduck import ./util.sh
 shelduck import ./download.sh
 shelduck import ./runner.sh
-
-main() {
-	# self test
-	bobshell_result_set true
-	bobshell_result_check
-	bobshell_result_unset
-
-
-	# delegate to march
-	bobshell_app_name=march
-
-	march "$@"
-	if ! bobshell_result_check; then
-		bobshell_result_shift
-		bobshell_result_apply bobshell_die
-	fi
-}
-
 
 
 # march --size=298961400 \
@@ -60,7 +44,7 @@ main() {
 
 
 # bobshell_download [OPTIONS] URL
-bobshell_cli_setup march_run --param --var=_march__cli_id     i app-id
+bobshell_cli_setup march_run --param --var=_march__cli_id     i id app-id
 
 # runners
 bobshell_cli_setup march_run --flag  --var=_march__exe      exe
@@ -78,15 +62,16 @@ bobshell_cli_setup march_run --param  --var=_march__expected_sha256 sha256
 march() {
     : "${MARCH_CACHE:=${XDG_CACHE_HOME:-$HOME/.cache}/$bobshell_app_name}"
 
+	case "${1:-}" in
+		(run|install|inspect)
+			_march__subcommand="$1"
+			shift
+			;;
+		(*)
+			_march__subcommand=run
+			;;
+	esac
 
-    if [ "${1:-}" = run ]; then
-        _march__subcommand=run
-        shift
-    elif [ "${1:-}" = install ];  then
-        _march__subcommand=install
-    else
-        _march__subcommand=run
-    fi
 
 	# parse cli
 	bobshell_cli_parse march_run "$@"
@@ -100,7 +85,8 @@ march() {
 	if bobshell_isset _march__cli_id; then
 		_march__id="${_march__cli_id}"
 	else
-		_march__id=$(printf %s "$1" | sed 's/[\/<>:\\|?*]/-/g')
+		march_get_id_from_url "$1"
+		bobshell_result_check _march__id
 	fi
 
 	if bobshell_isset _march__expected_md5 && [ 32 -ne "${#_march__expected_md5}" ] ; then
@@ -121,8 +107,39 @@ march() {
 
 }
 
+march_get_id_from_url() {
+	local x="$1"
+	local x=$(printf %s "$x" | sed 's/[\/<>:\\|?*]/-/g')
+	if [ ${#x} -gt 200 ]; then
+		x=$(printf %s "$x" | cut -c1-200)
+	fi
+	bobshell_result_set true "$x"
+}
+
 march_install() {
     bobshell_die install not implemented
+}
+
+march_inspect() {
+	march_runner_download "$1"
+	if ! bobshell_result_check _march_inpect_file; then
+		return
+	fi
+
+	local size=$(wc -c < "$_march_inpect_file")
+	march_util_sha256sum "$_march_inpect_file"
+	bobshell_result_assert _march_inspect__sha256sum -- 'error calculating sha256 hashsum'
+
+	local add_param=
+	if [ "$_march__id" != "${_march__cli_id:-$_march__id}" ]; then
+		bobshell_str_quote "--app-id=$_march__id"
+		add_param="$bobshell_result_1 "
+	fi
+
+	bobshell_str_quote "$1"
+	printf '%s --size=%d --sha256=%s %s%s' "$0" "$size" "$_march_inspect__sha256sum" "$add_param" "$bobshell_result_1"
+
+	bobshell_result_set true
 }
 
 read_file() {

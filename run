@@ -9,7 +9,8 @@ main() {
 }
 
 run_march() {
-	false
+	chmod +x ./march_entry_point.sh
+	./march_entry_point.sh "$@"
 }
 
 run_build() {

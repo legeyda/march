@@ -21,18 +21,18 @@ march_download() {
     march_util_rm_backup "$_march_download__dir"
     march_util_download_to_dir "$1" "$_march_download__dir"
 	if bobshell_result_check _march__download_file; then
-	    echo "actual file size: $(wc -c < "$_march__download_file")"
+	    bobshell_log_trace "actual file size: $(wc -c < "$_march__download_file")"
 
         march_util_sha256sum $_march__download_file
-        echo "actual file sha256 sum: $bobshell_result_2"
+        bobshell_log_trace "actual file sha256 sum: $bobshell_result_2"
 
 		march_download_check_file "$_march__download_file"
 		if bobshell_result_check; then
             _march__download_file_name=$(basename "$_march__download_file")
-            printf %s "$_march__download_file" > "${MARCH_CACHE}/$_march__id/download-file-name"
+            printf %s "$_march__download_file_name" > "${MARCH_CACHE}/$_march__id/download-file-name"
             unset _march__download_file_name
 		fi
-
+		unset _march__download_file
 	fi
 
     unset _march_download__dir
